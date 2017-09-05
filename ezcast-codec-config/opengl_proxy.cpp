@@ -29,6 +29,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include "PolyHook.hpp"
+#include "hook.h"
 
 // We are not including 'WinGDI.h' and 'gl.h', so the
 // required types must be redefined in this source file.
@@ -43,7 +45,8 @@
 #define END_MACRO while (0,0)
 
 // Local log stream output:
-#define GLPROXY_LOG(message) do { GLProxy::getLogStream() << message << std::endl; } END_MACRO
+//#define GLPROXY_LOG(message) do { GLProxy::getLogStream() << message << std::endl; } END_MACRO
+#define GLPROXY_LOG(message)
 
 // Appends a pair tokens into a single name/identifier.
 // Normally used to declared internal/built-in functions and variables.
@@ -411,16 +414,17 @@ static AutoReport g_AutoReport;
 //  Probably a non issue, since OpenGL is single-threaded.
 // ========================================================
 
+std::shared_ptr<PLH::X86Detour> detour_create_context(new PLH::X86Detour);
+
 BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* reserved */)
 {
     switch (reasonForDllLoad)
     {
     case DLL_PROCESS_ATTACH :
-        GLPROXY_LOG("\nDllMain: DLL_PROCESS_ATTACH\n");
+		//hookX86Function(ptr_create_context, )
         break;
 
     case DLL_PROCESS_DETACH :
-        GLPROXY_LOG("\nDllMain: DLL_PROCESS_DETACH\n");
         break;
 
     default :

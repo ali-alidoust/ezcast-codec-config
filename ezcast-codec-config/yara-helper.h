@@ -2,7 +2,6 @@
 
 #include <Windows.h>
 #include <Psapi.h>
-#include "yara-patterns.h"
 #include <mutex>
 #include <map>
 
