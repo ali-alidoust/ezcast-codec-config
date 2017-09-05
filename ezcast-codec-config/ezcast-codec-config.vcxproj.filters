@@ -34,5 +34,6 @@
     <None Include="opengl_proxy.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

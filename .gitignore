@@ -4,3 +4,7 @@ Debug/
 *.opensdf
 
 *.sdf
+
+ffmpeg-3\.2-win32-dev/
+
+packages/
