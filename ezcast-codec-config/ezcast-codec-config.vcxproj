@@ -71,8 +71,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\root\Personal\Projects\ezcast-codec-config\ini-parser;C:\root\Personal\Projects\ezcast-codec-config\ffmpeg-3.2-win32-dev\include;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\Capstone\include;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\PolyHook;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\root\Personal\Projects\ezcast-codec-config\ffmpeg-3.2-win32-dev\lib;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\Capstone\msvc\x86\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\root\Personal\Projects\ezcast-codec-config\ini-parser;C:\root\Personal\Projects\ezcast-codec-config\ffmpeg-3.2.4-win32-dev\include;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\Capstone\include;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\PolyHook;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\root\Personal\Projects\ezcast-codec-config\ffmpeg-3.2.4-win32-dev\lib;C:\root\Personal\Projects\ezcast-codec-config\PolyHook\Capstone\msvc\x86\Release;$(LibraryPath)</LibraryPath>
     <SourcePath>C:\root\Personal\Projects\ezcast-codec-config\PolyHook\PolyHook;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

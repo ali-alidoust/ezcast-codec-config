@@ -29,8 +29,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include "yara-helper.h"
 #include "PolyHook.hpp"
 #include "hook.h"
+#include "logger.h"
 
 // We are not including 'WinGDI.h' and 'gl.h', so the
 // required types must be redefined in this source file.
@@ -415,13 +417,27 @@ static AutoReport g_AutoReport;
 // ========================================================
 
 std::shared_ptr<PLH::X86Detour> detour_create_context(new PLH::X86Detour);
-
+std::string pattern_create_context = "55 8B EC 6A FF 68 8B 77 F0 00 64 A1 00 00 00 00";
+std::shared_ptr<YaraHelper> p_yara_helper;
 BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* reserved */)
 {
     switch (reasonForDllLoad)
     {
     case DLL_PROCESS_ATTACH :
-		//hookX86Function(ptr_create_context, )
+		p_yara_helper.reset(new YaraHelper());
+		p_yara_helper->initialize();
+
+
+		MODULEINFO info;
+		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &info, sizeof(info));
+		LOG(LL_NFO, "Image base:", ((void*)info.lpBaseOfDll));
+
+		void *p_create_context_original = nullptr;
+		p_yara_helper->addEntry("yara_create_context", pattern_create_context, &p_create_context_original);
+		p_yara_helper->performScan();
+		NOT_NULL(p_create_context_original, "Could not find create_context() function");
+		
+		hookX86Function(ptr_create_context, &create_context, )
         break;
 
     case DLL_PROCESS_DETACH :
@@ -432,6 +448,10 @@ BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* 
     } // switch (reasonForDllLoad)
 
     return TRUE;
+}
+
+static int32_t create_context(void* p_this) {
+
 }
 
 // ================================================================================================
