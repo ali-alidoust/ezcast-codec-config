@@ -38,10 +38,10 @@ namespace {
 
 	template <class FUNC_TYPE>
 	HRESULT hookX86Function(LPVOID func, LPVOID hookFunc, FUNC_TYPE *originalFunc, std::shared_ptr<PLH::X86Detour> X86Detour_ex) {
-		if (X86Detour_ex->GetOriginal<FUNC_TYPE>() != NULL) {
+		/*if (X86Detour_ex->GetOriginal<FUNC_TYPE>() != NULL) {
 			*originalFunc = X86Detour_ex->GetOriginal<FUNC_TYPE>();
 			return E_ABORT;
-		}
+		}*/
 		X86Detour_ex->SetupHook((BYTE*)func, (BYTE*)hookFunc);
 		if (!X86Detour_ex->Hook()) {
 			LOG(LL_ERR, X86Detour_ex->GetLastError().GetString());

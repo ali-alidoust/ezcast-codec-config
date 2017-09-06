@@ -21,6 +21,17 @@
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 
+#pragma comment(lib, "avcodec.lib")
+#pragma comment(lib, "avformat.lib")
+#pragma comment(lib, "avutil.lib")
+#pragma comment(lib, "swscale.lib")
+
+extern "C" {
+#include <libavcodec\avcodec.h>
+#include <libavformat\avformat.h>
+#include <libswscale\swscale.h>
+}
+
 #include <windows.h>
 #include <algorithm>
 #include <fstream>
@@ -33,11 +44,13 @@
 #include "PolyHook.hpp"
 #include "hook.h"
 #include "logger.h"
+#include "context.h"
 
 // We are not including 'WinGDI.h' and 'gl.h', so the
 // required types must be redefined in this source file.
 #define GLPROXY_NEED_OGL_TYPES
 #define GLPROXY_NEED_WGL_STRUCTS
+#define GLPROXY_EXPORTS
 
 // ========================================================
 // Local helper macros:
@@ -417,27 +430,37 @@ static AutoReport g_AutoReport;
 // ========================================================
 
 std::shared_ptr<PLH::X86Detour> detour_create_context(new PLH::X86Detour);
-std::string pattern_create_context = "55 8B EC 6A FF 68 8B 77 F0 00 64 A1 00 00 00 00";
+std::string pattern_create_context = "55 8B EC 6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 81 EC D0 00 00 00 A1 ?? ?? ?? ?? 33 C5 89 45 F0 53 56 57 50 8D 45 F4 64 A3 00 00 00 00 8B F1 68 ?? ?? ?? ??";
 std::shared_ptr<YaraHelper> p_yara_helper;
+typedef int32_t (__fastcall *create_context_type)(Context* p_context);
+create_context_type* create_context_original_func = nullptr;
+//SwsContext* p_swscale;
+static int32_t __fastcall create_context(Context*);
+
 BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* reserved */)
 {
+	void *p_create_context_original = nullptr;
+
     switch (reasonForDllLoad)
     {
     case DLL_PROCESS_ATTACH :
+
+		Logger::instance().level = LL_TRC;
+
 		p_yara_helper.reset(new YaraHelper());
 		p_yara_helper->initialize();
 
 
-		MODULEINFO info;
+		/*MODULEINFO info;
 		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &info, sizeof(info));
-		LOG(LL_NFO, "Image base:", ((void*)info.lpBaseOfDll));
+		LOG(LL_NFO, "Image base:", ((void*)info.lpBaseOfDll));*/
 
-		void *p_create_context_original = nullptr;
+		// void *p_create_context_original = nullptr;
 		p_yara_helper->addEntry("yara_create_context", pattern_create_context, &p_create_context_original);
 		p_yara_helper->performScan();
 		NOT_NULL(p_create_context_original, "Could not find create_context() function");
 		
-		hookX86Function(ptr_create_context, &create_context, )
+		REQUIRE(hookX86Function(p_create_context_original, &create_context, &create_context_original_func, detour_create_context), "Failed to hook create_context() function");
         break;
 
     case DLL_PROCESS_DETACH :
@@ -450,8 +473,51 @@ BOOL WINAPI DllMain(HINSTANCE /* hInstDll */, DWORD reasonForDllLoad, LPVOID /* 
     return TRUE;
 }
 
-static int32_t create_context(void* p_this) {
+static  int32_t __fastcall create_context(Context* p_context) {
 
+	if (p_context->is_context_created == 1) {
+		return 0;
+	}
+	PRE();
+	avcodec_register_all();
+	av_register_all();
+
+	AVDictionary* options;
+
+	p_context->avcodec = avcodec_find_encoder_by_name("libx264");
+	NOT_NULL(p_context->avcodec, "Could not find encoder");
+	p_context->avcodec_context = avcodec_alloc_context3(p_context->avcodec);
+	NOT_NULL(p_context->avcodec_context, "Could not create codec context");
+	av_dict_parse_string(&options, "", "=", "/", 0);
+
+	p_context->frame_input = av_frame_alloc();
+	NOT_NULL(p_context->frame_input, "Could not allocate input frame");
+	p_context->frame_input->format = AV_PIX_FMT_BGR24;
+	p_context->frame_input->width = 1920;
+	p_context->frame_input->height = 1080;
+
+	p_context->frame_output = av_frame_alloc();
+	NOT_NULL(p_context->frame_output, "Could not allocate output frame");
+	p_context->frame_output->format = AV_PIX_FMT_YUV420P;
+	p_context->frame_output->width = 1280;
+	p_context->frame_output->height = 720;
+
+	REQUIRE(av_frame_get_buffer(p_context->frame_output, 1), "Could not allocate output frame buffer");
+	//p_swscale = sws_getContext(1920, 1080, AV_PIX_FMT_RGB24, 1920, 1080, AV_PIX_FMT_YUV420P, SWS_POINT, nullptr, nullptr, nullptr);
+
+	p_context->avcodec_context->codec_id = p_context->avcodec->id;
+	p_context->avcodec_context->pix_fmt = AV_PIX_FMT_YUV420P;
+	p_context->avcodec_context->width = 1280;
+	p_context->avcodec_context->height = 720;
+	p_context->avcodec_context->time_base = av_make_q(1, 30);
+	p_context->avcodec_context->framerate = av_make_q(30, 1);
+	p_context->avcodec_context->codec_type = AVMEDIA_TYPE_VIDEO;
+
+	REQUIRE(avcodec_open2(p_context->avcodec_context, p_context->avcodec, &options), "Could not open codec");
+
+	p_context->is_context_created = 1;
+	POST();
+	return 0;
 }
 
 // ================================================================================================
